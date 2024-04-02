@@ -6,12 +6,12 @@ Spiderpool - RDMA network solution for the Kubernetes [LINK](https://spidernet-i
 
 HARMONOGRAM:
 
-21 marca - ⚪ **TERAZ** ⚪
+21 marca 
 - Omówienie tematyki
 - Ustalenie technologii realizacji
 - Podział zadań w zespole
 
-4 kwietnia 🔴 **Punkt kontrolny 1** 🔴
+4 kwietnia 🔴 **Punkt kontrolny 1** 🔴 - ⚪ **TERAZ** ⚪
 - Założenie repozytorium projektu na Github
 - Umieszczenie szkieletu dokumentacji
 - Podstawy teoretyczne (pkt. 1- 2 dok. )
