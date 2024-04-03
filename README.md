@@ -1,7 +1,5 @@
 # suu_spiderpool_project
 
-Zapisy do projektów: [LINK](https://docs.google.com/spreadsheets/d/1aBbVXf83pMiSswn5aqrRwD_OxMMmgdJ8Jzq8A_bWfTg/edit#gid=0)
-
 Spiderpool - RDMA network solution for the Kubernetes [LINK](https://spidernet-io.github.io/spiderpool/v0.9/#license). Spiderpool is an underlay and RDMA network solution for the Kubernetes. It enhances the capabilities of Macvlan CNI, ipvlan CNI, SR-IOV CNI, fulfills various networking needs, and supports to run on bare metal, virtual machine, and public cloud environments. Spiderpool delivers exceptional network performance, particularly benefiting network I/O-intensive and low-latency applications like storage, middleware, and AI. It could refer to website for more details.
 
 HARMONOGRAM:
@@ -34,7 +32,5 @@ HARMONOGRAM:
 - Prezentacja Demo (pkt. 9 dok.)
 - Prezentacja dokumentacji
 - Ocena wstępna realizacji projektu – ustalenie uzupełnień
-- Link do konsultacji - [LINK](https://mche.webex.com/meet/k.zielinski)
 
 20 czerwca 🟢 **Zaliczenie projektu** 🟢
-- Link do konsultacji - [LINK](https://mche.webex.com/meet/k.zielinski)
