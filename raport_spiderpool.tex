@@ -45,23 +45,49 @@ AGH Wydział Informatyki\\
 \section{Wprowadzenie}
 Kubernetes to jedno z najpopularniejszych narzędzi do zarządzania aplikacjami kontenerowymi. 
 Z tego też względu nieustanie wprowadzane są nowe moduły usprawniające jego działanie. 
-Jednym z nich jest Spiderpool - zaawansowane rozwiązanie zarządzania adresami IP (IPAM) wykorzystujące technologię RDMA.
-Rozszerza on możliwości standardowych interfejsów sieciowych kontenerów (CNI), takich jak Macvlan, Ipvlan, oraz SR-IOV, 
-dzięki czemu zapewnia  szybszy transfer danych między węzłami w klastrze Kubernetes, minimalizując opóźnienia i obciążenie procesora. 
+
+Jednym z nich jest Spiderpool - zaawansowane rozwiązanie zarządzania adresami IP (IPAM - IP Address Management) wykorzystujące technologię RDMA (Remote Direct Memory Access).
+Rozszerza on standardowe interfejsy sieciowe kontenerów (CNI - Container Network Interface) umożliwiając tworzenie interfejsów Macvlan, Ipvlan, oraz SR-IOV.
+Dzięki temu pozwala na większą dowolność w przypisywaniu adresów IP do kontenerów i w wykorzystaniu interfejsów sieciowych.
+Natomiast SR-IOV umożliwia kontenerowi na bezpośredni dostęp do fizycznego interfejsu sieciowego - szybszy transfer danych między węzłami w klastrze Kubernetesa, minimalizacja opóźnienia i obciążenia procesora. 
 Jest to szczególnie korzystne dla aplikacji wymagających wysokiej przepustowości i niskiego opóźnienia, 
-jak aplikacje do przetwarzania dużych ilości danych, middleware, czy systemy baz danych.
+jak aplikacje do przetwarzania dużych ilości danych, middleware, CNF (Container Network Functions) czy systemy baz danych.
 
 \section{Opis technologii}
+
 \subsection{Kubernetes}
-Spiderpool działa na klastrach, czyli zestawie maszyn (węzłów) do uruchamiania skonteneryzowanych aplikacji. Kubernetes jest platformą open source do zarządzania takimi klastrami. Służy do zarządzania zadaniami i serwisami uruchamianymi w kontenerach, oraz umożliwia deklaratywną konfigurację i automatyzację. Najmniejsza i najprostsza jednostka w środowisku Kubernetes to pod, czyli grupa jednego lub wielu kontenerów aplikacji. Kontenery wewnątrz poda współdzielą adres IP i przestrzeń portów, zawsze są uruchamiane wspólnie w tej samej lokalizacji i współdzielą kontekst wykonawczy na tym samym węźle.
+Spiderpool działa na klastrach, czyli zestawie maszyn (węzłów) do uruchamiania skonteneryzowanych aplikacji. Kubernetes jest platformą open source do zarządzania takimi klastrami. Służy do zarządzania zadaniami i serwisami uruchamianymi w kontenerach, oraz umożliwia deklaratywną konfigurację i automatyzację. Najmniejsza i najprostsza jednostka w środowisku Kubernetes to pod, czyli grupa jednego lub wielu kontenerów aplikacji. 
+W ''czystym'' k8s kontenery wewnątrz poda współdzielą adres IP i przestrzeń portów, zawsze są uruchamiane wspólnie w tej samej lokalizacji i współdzielą kontekst wykonawczy na tym samym węźle.
+
 \subsection{AWS}
 Spiderpool jest stworzone z myślą o działaniu na dowolnym środowisku chmurowym. Ułatwia również zarządzanie takimi rozwiązaniami jak multicloud czy chmura hybrydowa.\\
 Jedną z najbardzej znanych i używanych platform chmurowych jest Amazon Web Services (AWS), która zapewnia szeroki wybór usług oraz zasobów obliczeniowych, sieciowych i przechowywania danych. Usługi Amazona są znacznie  rozbudowane i umożliwiają skonfigurowanie środowiska w taki sposób, aby było jak najbardziej dopasowane do danych potrzeb. Jedną z najważniejszych usług dostępnych w AWS jest Elastic Compute Cloud (EC2), która umożliwia elastyczne skalowanie zasobów obliczeniowych. Szerokie zastosowanie tej platformy oznacza również, że istnieje ogromna ilość informacji, dokumentacji i pomocy dostępnych dla użytkowników. Dlatego zdecydowano się wdrożyć projekt na tym środowisku.
+
 \subsection{Ansible}
+Ansible jest silnikiem orkiestracji pozwalającym na tworzenie oprogramowania w paradygmacie ,,infrastructure as a code''.
+Umożliwia automatyzację provisioningu, konfiguracji i deploymentu systemów oraz oprogramowania za pomocą Playbook-ów - zestawów tasków, które mają się wykonać na wcześniej zdefiniowanych node'ach.
+
+Ansible udostępnia moduły dedykowane do konfiguracji AWSa i Kubernetesa.
+Wartą uwagi cechą playbooków jest idempotentność operacji - taski sprawdzają, czy dane zadanie już nie zostało wykonane, a jeśli tak to go nie powtarzają - umożliwia to wielokrotne ich uruchamianie bez konieczności czyszczenia całego środowiska.
 
 \section{Case Study - opis projektu}
-Za pomocą wymienionych uprzednio technologi, dążymy do uzyskania automatycznego deploymentu aplikacji. Zatem jednym z wyznaczonych celów jest możliwie maksymalnie zautomatyzowanie deploymentu; głównie poprzez użycie ansibla. \newline 
-Kolejnym celem jest sprawdzenie i kontrola poprawności działania aplikacji. Dlatego planujemy zaimplementować testy akceptacyjne. 
+Za pomocą wymienionych uprzednio technologii, dążymy do uzyskania automatycznego deploymentu środowiska Spiderpool na chmurze AWS za pomocą Ansible'a.
+W miejscach, gdzie użycie natywnych Ansible'owych modułów nie będzie możliwe, wykorzystane zostaną skrypty bash-owe lub (co jest bardziej preferowane) skrypt bash-owy wewnątrz playbooka.
+
+Po deploymencie Spiderpoola konieczne jest zautomatyzowanie sprawdzenia poprawności działania środowiska:
+\begin{enumerate}
+    \item test łączności sieciowej między pod-ami - za pomocą ping-ów lub curl-ów,
+    \item test działania funkcjonalności Spiderpoola - dodawanie i uwalnianie adresów IP,
+    \item uruchomienie kilku przykładowych aplikacji web-wych w kontenerach używających różnych adresów IP za pomocą Macvlan lub Ipvlan.
+\end{enumerate}
+
+W ramach projektu zautomatyzowane zostaną więc:
+\begin{enumerate}
+    \item konfiguracja AWS - VPC i EC2,
+    \item deployment K8s,
+    \item deployment Spiderpoola,
+    \item testy, a w tym deployment przykładowych aplikacji.
+\end{enumerate}
 
 \section{Architektura rozwiązania}
 
