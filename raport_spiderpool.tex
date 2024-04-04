@@ -52,6 +52,12 @@ Jest to szczególnie korzystne dla aplikacji wymagających wysokiej przepustowo�
 jak aplikacje do przetwarzania dużych ilości danych, middleware, czy systemy baz danych.
 
 \section{Opis technologii}
+\subsection{Kubernetes}
+Spiderpool działa na klastrach, czyli zestawie maszyn (węzłów) do uruchamiania skonteneryzowanych aplikacji. Kubernetes jest platformą open source do zarządzania takimi klastrami. Służy do zarządzania zadaniami i serwisami uruchamianymi w kontenerach, oraz umożliwia deklaratywną konfigurację i automatyzację. Najmniejsza i najprostsza jednostka w środowisku Kubernetes to pod, czyli grupa jednego lub wielu kontenerów aplikacji. Kontenery wewnątrz poda współdzielą adres IP i przestrzeń portów, zawsze są uruchamiane wspólnie w tej samej lokalizacji i współdzielą kontekst wykonawczy na tym samym węźle.
+\subsection{AWS}
+Spiderpool jest stworzone z myślą o działaniu na dowolnym środowisku chmurowym. Ułatwia również zarządzanie takimi rozwiązaniami jak multicloud czy chmura hybrydowa.\\
+Jedną z najbardzej znanych i używanych platform chmurowych jest Amazon Web Services (AWS), która zapewnia szeroki wybór usług oraz zasobów obliczeniowych, sieciowych i przechowywania danych. Usługi Amazona są znacznie  rozbudowane i umożliwiają skonfigurowanie środowiska w taki sposób, aby było jak najbardziej dopasowane do danych potrzeb. Jedną z najważniejszych usług dostępnych w AWS jest Elastic Compute Cloud (EC2), która umożliwia elastyczne skalowanie zasobów obliczeniowych. Szerokie zastosowanie tej platformy oznacza również, że istnieje ogromna ilość informacji, dokumentacji i pomocy dostępnych dla użytkowników. Dlatego zdecydowano się wdrożyć projekt na tym środowisku.
+\subsection{Ansible}
 
 \section{Case Study - opis projektu}
 Za pomocą wymienionych uprzednio technologi, dążymy do uzyskania automatycznego deploymentu aplikacji. Zatem jednym z wyznaczonych celów jest możliwie maksymalnie zautomatyzowanie deploymentu; głównie poprzez użycie ansibla. \newline 
