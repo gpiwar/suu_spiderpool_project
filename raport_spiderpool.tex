@@ -90,7 +90,19 @@ W ramach projektu zautomatyzowane zostaną więc:
 \end{enumerate}
 
 \section{Architektura rozwiązania}
-
+Spiderpool składa się z następujących komponentów:
+\begin{enumerate}
+    \item Kontroler Spiderpoola, odpowiedzialny za interakcje z API Server. Zarządza różnymi zasobami CRD; SpiderIPPool, SpiderSubnet, SpiderMultusConfig; poprzez ich walidację, tworzenie i update-owanie ich statusu. Dodatkowo odpowiada na żądania od Spiderpool-agent Pods, takie jak alokacja, zwolnienie czy zarządzanie pulą adresów IP, 
+    \item Spiderpool-agent, zestaw daemon-ów działających na każdym nodzie. Wspiera instalacje wtyczek takich jak Multus, Coordinator, IPAM, czy CNI. Odpowiada na żądania alokacji IP przez CNI, podczas tworzenia Pod-u. Komunikuje się z Spiderpool-controller w zakresie alokacji i tworzenia IP Pod-u. Komunikuje się także z Coordinator w zakresie synchronizacji konfiguracji i wspierania implementacji alokacji IP.
+    \item Wtyczek CNI
+    \newline Spiderpool IPAM plugin, główny CNI używany do zarządzania alokacją adresów IP.
+    \newline Coordinator plugin, odpowiada za koordynację routingu, połączenie pomiędzy hostami. Zapewnia unikalność adresów IP, odpowiednią adresacje MAC.
+    \newline Ifacer plugin, automatyzuje tworzenie wirtualnych interfejsów dla VLAN-ów i Bondów (łączenia wielu interfejsów sieciowych w jedno logiczne połączenie).
+    \newline Multus CNI, zarządza (scheduler) innymi wtyczkami CNI.
+    \item Komponentów SR-IOV
+    \item Komponentów RDMA
+    \newline RDMA CNI, implementuje izolację sieci
+\end{enumerate}
 
 \section{Konfiguracja środowiska}
 
