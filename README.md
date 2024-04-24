@@ -9,13 +9,13 @@ HARMONOGRAM:
 - Ustalenie technologii realizacji
 - Podział zadań w zespole
 
-4 kwietnia 🔴 **Punkt kontrolny 1** 🔴 - ⚪ **TERAZ** ⚪
+4 kwietnia 🔴 **Punkt kontrolny 1** 🔴
 - Założenie repozytorium projektu na Github
 - Umieszczenie szkieletu dokumentacji
 - Podstawy teoretyczne (pkt. 1- 2 dok. )
 - Wstępna prezentacja koncepcji Demo (pkt. 3 dok.)
   
-25 kwietnia
+25 kwietnia - ⚪ **TERAZ** ⚪
 - Opis Demo – uzgodnienie (pkt. 3 dok. )
 - Ustalenie technologii realizacji Demo (pkt. 4 dok.)
 - Wstępny opis konfiguracji (pkt. 5 dok.)
