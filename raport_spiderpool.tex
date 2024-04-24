@@ -9,6 +9,7 @@
     colorlinks=false, %set true if you want colored link
     linktoc=all,     %set to all if you want both sections and subsections linked
 }
+\urlstyle{same}
 
 \begin{document}
 
@@ -94,7 +95,35 @@ W ramach projektu zautomatyzowane zostaną więc:
 
 \section{Konfiguracja środowiska}
 
+W celu realizacji założeń projektowych związanych z automatycznym deploymentem Spiderpoola 
+przeprowadzono konfigurację środowiska w AWS. Umożliwił to dostęp do platformy AWS Academy Learner Lab 
+gdzie w ramach projektu otrzymaliśmy 100 dolarów w zasobach do wykorzystania na platformie. 
+
+
+Konfigurację rozpoczęto od utworzenia  ...  za pomocą konsoli AWS. 
+
+Ostatnim etapem było postawienie klastra Kubernetes w serwisie EKS (ang. Elastic Kubernetes Service). 
+Przeprowadzono to według schematu ... 
+ 
+
+Dodać opis z tej stronki:
+
+\url{https://docs.daocloud.io/en/network/modules/spiderpool/public-cloud/awscloud.html}
+
+Ostatnim krokiem było podłączenie konta w AWS do środowiska na maszynie lokalnej. Konieczna do tego jest 
+instalacja narzędzia \textit{aws-cli}. Następnie wystarczy skopiować plik \textit{credentials}, dostępny w  sekcji AWS Details w Learner Lab do folderu /.aws utworzonego po uruchomieniu komendy \textit{aws configure}.
+
+
 \section{Instalacja}
+
+Konieczne do zainstalowania:
+
+\begin{enumerate}
+    \item aws-cli - https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2-linux.html ,
+    \item kubectl - https://kubernetes.io/docs/tasks/tools/ ,
+    \item helm -  https://helm.sh/docs/intro/install/ ,
+\end{enumerate}
+
 
 \section{How to reproduce - steps}
 
