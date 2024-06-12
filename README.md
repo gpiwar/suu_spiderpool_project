@@ -37,6 +37,11 @@ Ensure your AWS credentials are configured in your environment. Place them in ~/
 This script will execute the necessary Terraform and Ansible commands to set up the environment, 
 deploy Kubernetes, Spiderpool, and the applications.
 
+### Data preparation
+
+Additionaly it's possible to add a new worker in the variables.tf file are set according to your environment requirements. 
+Ensure the SpiderIPPool.yaml file is correctly set up to define the network configurations and IP pools.
+
 ### Verify Application:
 Access the Kubernetes cluster via kubectl and verify node and pod statuses. Change the item variable according
 to output of 'get pods'.
