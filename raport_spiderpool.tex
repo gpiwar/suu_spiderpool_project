@@ -108,48 +108,89 @@ Spiderpool składa się z następujących komponentów:
 
 \section{Konfiguracja środowiska}
 
+\subsection{AWS}
 W celu realizacji założeń projektowych związanych z automatycznym deploymentem Spiderpoola 
-przeprowadzono konfigurację środowiska w AWS. Umożliwił to dostęp do platformy AWS Academy Learner Lab 
-gdzie w ramach projektu otrzymaliśmy 100 dolarów w zasobach do wykorzystania na platformie. 
-
+przeprowadzono konfigurację środowiska w AWS. Umożliwił to dostęp do platformy AWS Academy Learner
+Lab gdzie w ramach projektu otrzymaliśmy 100 dolarów w zasobach do wykorzystania na platformie. 
 
 Konfigurację rozpoczęto od utworzenia  ...  za pomocą konsoli AWS. 
-
-Ostatnim etapem było postawienie klastra Kubernetes w serwisie EKS (ang. Elastic Kubernetes Service). 
 Przeprowadzono to według schematu ... 
+
  
+TUTAJ SCHEMAT 
 
-Dodać opis z tej stronki:
 
-\url{https://docs.daocloud.io/en/network/modules/spiderpool/public-cloud/awscloud.html}
 
-Ostatnim krokiem było podłączenie konta w AWS do środowiska na maszynie lokalnej. Konieczna do tego jest 
-instalacja narzędzia \textit{aws-cli}. Następnie wystarczy skopiować plik \textit{credentials}, dostępny w  sekcji AWS Details w Learner Lab do folderu /.aws utworzonego po uruchomieniu komendy \textit{aws configure}.
+Ostatnim krokiem było podłączenie konta w AWS do środowiska na maszynie lokalnej. Następnie wystarczy skopiować plik \textit{credentials}, dostępny w  sekcji AWS Details w Learner Lab do folderu textit{~/.aws/credentials} utworzonego po uruchomieniu komendy \textit{aws configure}.
+
+\subsection{KOD}
+
+Opisać co się dzieje w kodzie 
 
 
 \section{Instalacja}
 
-Konieczne do zainstalowania:
+Aby zainstalować nasz projekt, na początek należy spełnić kilka wymagań. Przede wszystkim 
+potrzebne jest konto AWS z odpowiednimi uprawnieniami. Konieczne jest również zainstalowanie
+Terraform w wersji 0.12 lub nowszej oraz Ansible w wersji 2.9 lub nowszej. Dodatkowo, wymagane
+jest posiadanie pary kluczy SSH umożliwiających dostęp do instancji EC2 na platformie AWS.
 
-\begin{enumerate}
-    \item aws-cli - https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2-linux.html ,
-    \item kubectl - https://kubernetes.io/docs/tasks/tools/ ,
-    \item helm -  https://helm.sh/docs/intro/install/ ,
-\end{enumerate}
+Proces instalacji rozpoczyna się od klonowania repozytorium projektu z zdalnego repozytorium 
+oraz przejścia do katalogu z projektem. W tym celu należy użyć poleceń:
+
+\begin{verbatim}
+git clone https://github.com/gpiwar/suu_spiderpool_project.git
+cd suu_spiderpool_project
+\end{verbatim}
+
+Głównym krokiem instalacji jest uruchomienie skryptu \textit{run.sh}, który w pełni automatycznie przeprowadza proces konfiguracji infrastruktury oraz wdrażania aplikacji. Skrypt ten tworzy środowisko, wdrażając klaster Kubernetes oraz aplikacje takie jak Spiderpool i Multus CNI. Również wykonuje niezbędne komendy Terraform i Ansible. Ponadto przeprowadza on cały proces instalacji, w tym konfigurację sieci, instancji EC2 oraz wdrożenie aplikacji w klastrze Kubernetes.
+
+\section{Proces tworzenia aplikacji}
+Opisać kod 
+
+\subsection{Manifests}
+
+\subsection{Ansible - playbooks}
+
+\subsection{Terraform}
+
+\section{Demo aplikacji}
+Aby przetestować w pełni poprawne działanie proponowanego rozwiązania konieczne jest uruchomienie
+demo naszej aplikacji wykorzystującej Spiderpool. Poniżej przedstawiono odpowiednie kroki.
+
+\subsection{Konfiguracja}
+
+AWS credentials i co jeszcze?
+
+\subsection{Uruchomienie skryptu}
+
+Tak jak opisano w sekcji z instalacją, do wdrożenia aplikacji konieczne jest pobranie plików z 
+repozytorium porjektowego na platformie GitHub. Po przejściu do pobranego folderu należy 
+uruchomić skrypt \textit{run.sh}, który automatycznie zainstaluje i skonfiguruje konieczne pliki.
+
+\subsection{Sprawdzenie działania}
+Po zakończeniu procesu wdrażania, należy zweryfikować wyniki. W konsoli zarządzania AWS można
+sprawdzić, czy zostały utworzone odpowiednie zasoby, takie jak VPC, podsieci, instancje EC2 oraz
+inne elementy infrastruktury. Następnie, za pomocą narzędzia kubectl, można sprawdzić stan klastra
+Kubernetes, w tym węzłów i podów, używając poleceń:
+
+\begin{verbatim}
+kubectl get nodes
+kubectl get pods -A.
+\end{verbatim}
+
+Na końcu sprawdzamy czy Spiderpool poprawnie przypisał adresy IP z zdefiniowanych pul do podów.
 
 
-\section{How to reproduce - steps}
-
-\subsection{Infrastructure as Code approach}
-
-\section{Demo deployment steps}
-
-\subsection{Configuration set-up}
-\subsection{Data preparation}
-\subsection{Execution procedure}
-\subsection{Results presentation}
+TUTAJ SCREEN
 
 \section{Podsumowanie}
+
+\begin{enumerate}
+    \item 
+    \item 
+    \item 
+\end{enumerate}
 
 %\bibliography{}
 
