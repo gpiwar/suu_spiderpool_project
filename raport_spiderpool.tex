@@ -3,6 +3,9 @@
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage{polski}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{listings}
 
 \usepackage{hyperref}
 \hypersetup{
@@ -10,6 +13,16 @@
     linktoc=all,     %set to all if you want both sections and subsections linked
 }
 \urlstyle{same}
+
+\lstdefinestyle{yaml}{
+     basicstyle=\color{blue}\footnotesize,
+     rulecolor=\color{black},
+     string=[s]{'}{'},
+     stringstyle=\color{blue},
+     comment=[l]{:},
+     commentstyle=\color{black},
+     morecomment=[l]{-}
+ }
 
 \begin{document}
 
@@ -112,6 +125,7 @@ Spiderpool składa się z następujących komponentów:
     \newline RDMA CNI, implementuje izolację sieci
 \end{enumerate}
 
+\newpage
 
 \section{Konfiguracja środowiska}
 
@@ -123,10 +137,12 @@ Lab gdzie w ramach projektu otrzymaliśmy 100 dolarów w zasobach do wykorzystan
 Konfigurację rozpoczęto od utworzenia  ...  za pomocą konsoli AWS. 
 Przeprowadzono to według schematu ... 
 
- 
-TUTAJ SCHEMAT 
-
-
+\begin{figure}
+    \centering
+    \includegraphics[width=0.8\linewidth]{alicloud-k8s-network_NOT_OURS.png}
+    \caption{Do poprawy adresy - rysunek tymczasowy}
+    \label{fig:enter-label}
+\end{figure}
 
 Ostatnim krokiem było podłączenie konta w AWS do środowiska na maszynie lokalnej. Następnie wystarczy skopiować plik \textit{credentials}, dostępny w  sekcji AWS Details w Learner Lab do folderu textit{~/.aws/credentials} utworzonego po uruchomieniu komendy \textit{aws configure}.
 
@@ -153,13 +169,78 @@ cd suu_spiderpool_project
 Głównym krokiem instalacji jest uruchomienie skryptu \textit{run.sh}, który w pełni automatycznie przeprowadza proces konfiguracji infrastruktury oraz wdrażania aplikacji. Skrypt ten tworzy środowisko, wdrażając klaster Kubernetes oraz aplikacje takie jak Spiderpool i Multus CNI. Również wykonuje niezbędne komendy Terraform i Ansible. Ponadto przeprowadza on cały proces instalacji, w tym konfigurację sieci, instancji EC2 oraz wdrożenie aplikacji w klastrze Kubernetes.
 
 \section{Proces tworzenia aplikacji}
-Opisać kod 
+Opisać kod - w zależności co ważne dodać fragmenty, narazie wstawiłam puste miejsca na kod
 
 \subsection{Manifests}
 
+\textbf{SpiderMultusConfig.yaml}
+\begin{lstlisting}[style=yaml]
+---
+apiVersion: spiderpool.spidernet.io/v2beta1
+kind: SpiderMultusConfig
+metadata:
+  name: ipvlan-eth0
+  namespace: kube-system
+spec:
+  cniType: ipvlan
+  ipvlan:
+    master:
+    - eth0
+---
+apiVersion: spiderpool.spidernet.io/v2beta1
+kind: SpiderMultusConfig
+metadata:
+  name: ipvlan-eth1
+  namespace: kube-system
+spec:
+  cniType: ipvlan
+  ipvlan:
+    master:
+    - eth1
+\end{lstlisting}
+
+\textbf{SpiderIPPool.yaml}
+\begin{lstlisting}[style=yaml]
+\end{lstlisting}
+
+
+\textbf{Deployment-nginx.yaml}
+\begin{lstlisting}[style=yaml]
+\end{lstlisting}
+
+
+\textbf{Deployment-busybox.yaml}
+\begin{lstlisting}[style=yaml]
+\end{lstlisting}
+
+
 \subsection{Ansible - playbooks}
 
+\textbf{pre-deploy.yml}
+\begin{lstlisting}[style=yaml]
+\end{lstlisting}
+
+
+\textbf{deploy-spiderpool.yml}
+\begin{lstlisting}[style=yaml]
+\end{lstlisting}
+
+
+\textbf{deploy-k8s.yml}
+\begin{lstlisting}[style=yaml]
+\end{lstlisting}
+
+
+\textbf{deploy-apps.yml}
+\begin{lstlisting}[style=yaml]
+\end{lstlisting}
+
+
 \subsection{Terraform}
+
+\begin{lstlisting}[style=yaml]
+\end{lstlisting}
+
 
 \section{Demo aplikacji}
 Aby przetestować w pełni poprawne działanie proponowanego rozwiązania konieczne jest uruchomienie
@@ -188,16 +269,13 @@ kubectl get pods -A.
 
 Na końcu sprawdzamy czy Spiderpool poprawnie przypisał adresy IP z zdefiniowanych pul do podów.
 
-
 TUTAJ SCREEN
 
 \section{Podsumowanie}
 
-\begin{enumerate}
-    \item 
-    \item 
-    \item 
-\end{enumerate}
+Podsumowując, skrypt stworzony na potrzeby projektu dostarcza skutecznych narzędzi do zarządzania siecią kontenerową w środowiskach Kubernetes. Realizowany projekt jest automatycznym rozwiązaniem
+dla możliwości narzędzia Spiderpool. Dzięki integracji z technologiami, takimi jak AWS, Ansible, oraz Terraform, rozwiązanie zapewnia elastyczność, skalowalność i efektywność. W ramach projektu przetestowano funkcjonalność Spiderpoola, sprawdzając poprawność alokacji adresów IP oraz 
+działanie aplikacji webowych wdrożonych w kontenerach z różnymi konfiguracjami sieciowymi.
 
 %\bibliography{}
 
