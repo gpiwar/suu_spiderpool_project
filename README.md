@@ -38,9 +38,13 @@ This script will execute the necessary Terraform and Ansible commands to set up 
 deploy Kubernetes, Spiderpool, and the applications.
 
 ### Verify Application:
-Access the Kubernetes cluster via kubectl and verify node and pod statuses.
+Access the Kubernetes cluster via kubectl and verify node and pod statuses. Change the item variable according
+to output of 'get pods'.
 
     kubectl get nodes
     kubectl get pods -A
+    kubectl exec -it {{ item }} -- ip -4 addr show scope global
 
 Check that Spiderpool has correctly assigned IPs from the defined pools to the pods.
+
+    ping all ips from pods
