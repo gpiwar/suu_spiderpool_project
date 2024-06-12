@@ -1,11 +1,13 @@
 \documentclass[onecolumn,12pt]{article}
-
+\usepackage[a4paper, total={7in, 9in}]{geometry}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage{polski}
 \usepackage{graphicx}
 \usepackage{xcolor}
 \usepackage{listings}
+
+
 
 \usepackage{hyperref}
 \hypersetup{
@@ -23,6 +25,19 @@
      commentstyle=\color{black},
      morecomment=[l]{-}
  }
+
+% Define Terraform language
+\lstdefinestyle{terraform}{
+  keywords={resource, variable, provider, output, module, locals, terraform, backend},
+  sensitive=true,
+  comment=[l]{\#},
+  morecomment=[s]{/*}{*/},
+  morestring=[b]",
+  morestring=[b]',
+  keywordstyle=\color{blue}\bfseries,
+  commentstyle=\color{gray}\itshape,
+  stringstyle=\color{red}
+}
 
 \begin{document}
 
@@ -125,31 +140,23 @@ Spiderpool składa się z następujących komponentów:
     \newline RDMA CNI, implementuje izolację sieci
 \end{enumerate}
 
-\newpage
 
 \section{Konfiguracja środowiska}
 
-\subsection{AWS}
 W celu realizacji założeń projektowych związanych z automatycznym deploymentem Spiderpoola 
 przeprowadzono konfigurację środowiska w AWS. Umożliwił to dostęp do platformy AWS Academy Learner
 Lab gdzie w ramach projektu otrzymaliśmy 100 dolarów w zasobach do wykorzystania na platformie. 
 
-Konfigurację rozpoczęto od utworzenia  ...  za pomocą konsoli AWS. 
-Przeprowadzono to według schematu ... 
+Koniecznym krokiem było podłączenie konta w AWS do środowiska na maszynie lokalnej. Wystarczy skopiować
+plik \textit{credentials}, dostępny w  sekcji AWS Details w Learner Lab do folderu textit{~/.aws/
+credentials}.
 
 \begin{figure}
     \centering
     \includegraphics[width=0.8\linewidth]{alicloud-k8s-network_NOT_OURS.png}
-    \caption{Do poprawy adresy - rysunek tymczasowy}
+    \caption{Schemat przedstawiający uzyskaną konfigurację.}
     \label{fig:enter-label}
 \end{figure}
-
-Ostatnim krokiem było podłączenie konta w AWS do środowiska na maszynie lokalnej. Następnie wystarczy skopiować plik \textit{credentials}, dostępny w  sekcji AWS Details w Learner Lab do folderu textit{~/.aws/credentials} utworzonego po uruchomieniu komendy \textit{aws configure}.
-
-\subsection{KOD}
-
-Opisać co się dzieje w kodzie 
-
 
 \section{Instalacja}
 
@@ -170,6 +177,104 @@ Głównym krokiem instalacji jest uruchomienie skryptu \textit{run.sh}, który w
 
 \section{Proces tworzenia aplikacji}
 Opisać kod - w zależności co ważne dodać fragmenty, narazie wstawiłam puste miejsca na kod
+
+\subsection{Terraform}
+
+\subsubsection{Adresy sieci}
+\begin{lstlisting}[style=terraform]
+variable "net_cidr" {
+  type        = string
+  description = "Network CIDR"
+  default     = "172.31.0.0/16"
+}
+
+variable "public_subnet_cidr" {
+  type        = string
+  description = "Public Subnet CIDR"
+  default     = "172.31.0.0/20"
+}
+
+variable "private_subnet_cidrs" {
+  type        = list(string)
+  description = "Private Subnet CIDRs"
+  default     = ["172.31.16.0/20", "172.31.64.0/20", "172.31.96.0/20"]
+}
+
+locals {
+  bastion = {
+    ami           = data.aws_ami.this.id
+    instance_type = "t2.micro"
+  }
+  interfaces = {
+    master_eth0 = {
+      subnet_id = aws_subnet.private[0].id
+      ip_list   = ["172.31.17.1"]
+    }
+    worker1_eth0 = {
+      subnet_id = aws_subnet.private[1].id
+      ip_list   = [for i in range(1, 5) : "172.31.65.${i}"]
+    }
+    worker1_eth1 = {
+      subnet_id = aws_subnet.private[2].id
+      ip_list   = [for i in range(1, 5) : "172.31.97.${i}"]
+    }
+    worker2_eth0 = {
+      subnet_id = aws_subnet.private[1].id
+      ip_list   = [for i in range(1, 5) : "172.31.66.${i}"]
+    }
+    worker2_eth1 = {
+      subnet_id = aws_subnet.private[2].id
+      ip_list   = [for i in range(1, 5) : "172.31.98.${i}"]
+    }
+    worker3_eth0 = {
+      subnet_id = aws_subnet.private[1].id
+      ip_list   = [for i in range(1, 5) : "172.31.67.${i}"]
+    }
+    worker3_eth1 = {
+      subnet_id = aws_subnet.private[2].id
+      ip_list   = [for i in range(1, 5) : "172.31.99.${i}"]
+    }
+    worker4_eth0 = {
+      subnet_id = aws_subnet.private[1].id
+      ip_list   = [for i in range(1, 5) : "172.31.68.${i}"]
+    }
+    worker4_eth1 = {
+      subnet_id = aws_subnet.private[2].id
+      ip_list   = [for i in range(1, 5) : "172.31.100.${i}"]
+    }
+  }
+}
+\end{lstlisting}
+Zmienne określają adresy dla sieci VPC, publicznych podsieci oraz grupę adresów dla sieci prywatnych. Następnie za pomocą wartości lokanych ustawiany jest adress bastionu oraz pule adresów IP dla interfejsów. Każdy z czterech workerów posiada dwa interfejsy eth0 i eth1.
+
+\subsubsection{Pobieranie informacji obrazie}
+\begin{lstlisting}[style=terraform]
+data "aws_ami" "this" {
+  most_recent = true
+  filter {
+    name   = "owner-alias"
+    values = ["amazon"]
+  }
+
+  filter {
+    name   = "name"
+    values = ["RHEL-9.4*"]
+  }
+}
+\end{lstlisting}
+
+
+Pobranie danych o najnowszym obrazie AMI RHEL-9.4 od Amazona.
+
+\subsubsection{Grupy bezpieczeństwa}
+Główna grupa bezpieczeństwa konfiguruje regułę egress, pozwalającą na cały ruch do wszystkich adresów IP. Reguła igress, pozwala natomiast jedynie na komunikacje przez SSH.
+
+W przypadku grupy wewnątrz klastra dopuszczony jest ruch dla wszystkich protokołów na wszystkich portach i adresach IP.
+
+
+
+\subsubsection{cluster.tf}
+Ten plik zawiera konfiguracje klastra. Wykorzystuje zmienne zdefiniowane w pliku variables.tf aby utworzyć zasoby określające m.in. łączenie się z klastrem, gateway NAT, podsieci, interfejsy sieciowe.
 
 \subsection{Manifests}
 
@@ -215,30 +320,51 @@ spec:
 
 
 \subsection{Ansible - playbooks}
-
-\textbf{pre-deploy.yml}
+%Za pomocą Ansible dokonujemy deployu \newline
+\textbf{pre-deploy.yml} \newline
+Dokonujemy konfiguracji połączenia z bastionem i klustrem. Dodajemy klucz ssh, ustawiamy hostname, dodajemy cluster IPs do /etc/hosts. Następnie instalujemy następujące aplikacje vim, tmux, git, bash-completion, python3-pip.
 \begin{lstlisting}[style=yaml]
 \end{lstlisting}
 
 
-\textbf{deploy-spiderpool.yml}
+\textbf{deploy-k8s.yml} \newline
+Dokonujemy instalacji kubernetesa, CRI-O, container-selinux, cri-o, kubelet, kubeadm, kubectl.
 \begin{lstlisting}[style=yaml]
 \end{lstlisting}
 
+\textbf{deploy-spiderpool.yml} \newline
+Dokonujemy instalacji helm-a. Za pomocą helm-a instalacji spiderpool-a. Następnie dodajemy pulę adresów IP do spiderpool-a. Playbook realizuje komendy
+\begin{lstlisting}
+helm repo add spiderpool https://spidernet-io.github.io/spiderpool
 
-\textbf{deploy-k8s.yml}
-\begin{lstlisting}[style=yaml]
+helm repo update spiderpool
+
+helm install spiderpool spiderpool/spiderpool --namespace kube-system \
+--set ipam.enableStatefulSet=false \
+--set multus.multusCNI.defaultCniCRName="ipvlan-eth0"
+
 \end{lstlisting}
 
 
-\textbf{deploy-apps.yml}
+
+\textbf{deploy-apps.yml} \newline
+Dokonujemy deploymentu busybox, nginx.
 \begin{lstlisting}[style=yaml]
-\end{lstlisting}
+    - name: Get Spiderpool IP pools
+      ansible.builtin.command: kubectl get spiderippools.spiderpool.spidernet.io
+      register: kubectl_get_spiderippools
+      changed_when: false
 
+    - name: Get busybox pod names
+      ansible.builtin.command: kubectl get pods -oNAME --selector=run=busybox
+      register: busybox_pod_names
+      changed_when: false
 
-\subsection{Terraform}
-
-\begin{lstlisting}[style=yaml]
+    - name: Get IPs from inside of busybox pods
+      ansible.builtin.command: "kubectl exec -it {{ item }} -- ip -4 addr show scope global"
+      loop: "{{ busybox_pod_names.stdout_lines }}"
+      register: busybox_pods_ips
+      changed_when: false
 \end{lstlisting}
 
 
@@ -248,28 +374,58 @@ demo naszej aplikacji wykorzystującej Spiderpool. Poniżej przedstawiono odpowi
 
 \subsection{Konfiguracja}
 
-AWS credentials i co jeszcze?
+Aby przeporwadzić demo naszej aplikacji wykorzystującej Spiderpool, należy skonfigurować AWS, 
+zamieszczając plik credentials.txt w odpowiednim katalogu. Jest to niezbędne to prawidłowego działania
+przedstawionego rozwiązania. 
+
+\subsection{Przygotowanie danych}
+
+W trakcie testowania możliwa jest edycja pliku \textit{'variables.tf'}, w celu dodania nowego workera do klastra. Jeżeli zdecydujemy się na ten krok należy dodać również nowe interfejsy sieciowe w sekcji \textit{interfaces}, gdzie przypiszemy odpowiednie adresy IP do interfejsów 'etho0' i etho1'. Kolejnym 
+i ostatnim krokiem jest aktualizacja pliku \textit{'SpiderIPPool.yaml'}, gdzie dodamy nowe adresy IP.
+Poniżej przedstawiono przykładowe definicje workera i jego interfejsów:
+
+\begin{lstlisting}[style=yaml]
+
+    worker4 = {
+      ami           = data.aws_ami.this.id
+      instance_type = "t2.large"
+      interfaces = [
+        aws_network_interface.this["worker4_eth0"].id,
+        aws_network_interface.this["worker4_eth1"].id
+      ]
+    }
+--------------------------------
+
+    worker4_eth0 = {
+      subnet_id = aws_subnet.private[1].id
+      ip_list   = [for i in range(1, 5) : "172.31.68.${i}"]
+    }
+    worker4_eth1 = {
+      subnet_id = aws_subnet.private[2].id
+      ip_list   = [for i in range(1, 5) : "172.31.100.${i}"]
+    }
+\end{lstlisting}
 
 \subsection{Uruchomienie skryptu}
 
 Tak jak opisano w sekcji z instalacją, do wdrożenia aplikacji konieczne jest pobranie plików z 
-repozytorium porjektowego na platformie GitHub. Po przejściu do pobranego folderu należy 
+repozytorium projektowego na platformie GitHub. Po przejściu do pobranego folderu należy 
 uruchomić skrypt \textit{run.sh}, który automatycznie zainstaluje i skonfiguruje konieczne pliki.
 
 \subsection{Sprawdzenie działania}
 Po zakończeniu procesu wdrażania, należy zweryfikować wyniki. W konsoli zarządzania AWS można
 sprawdzić, czy zostały utworzone odpowiednie zasoby, takie jak VPC, podsieci, instancje EC2 oraz
-inne elementy infrastruktury. Następnie, za pomocą narzędzia kubectl, można sprawdzić stan klastra
-Kubernetes, w tym węzłów i podów, używając poleceń:
+inne elementy infrastruktury. Następnie, za pomocą narzędzia kubectl, można ręcznie sprawdzić stan
+klastra Kubernetes, w tym węzłów i podów, używając poleceń przedstawionych poniżej.
 
 \begin{verbatim}
 kubectl get nodes
-kubectl get pods -A.
+kubectl get pods
+kubectl exec -it {{ item }} -- ip -4 addr show scope global
 \end{verbatim}
 
-Na końcu sprawdzamy czy Spiderpool poprawnie przypisał adresy IP z zdefiniowanych pul do podów.
-
-TUTAJ SCREEN
+Gdzie w miejsce 'item' wpisujemy konkretne pody otrzymane po wywołaniu poprzenich poleceń.
+Na końcu sprawdzamy czy Spiderpool poprawnie przypisał adresy IP z zdefiniowanych pul do podów. 
 
 \section{Podsumowanie}
 
