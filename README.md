@@ -52,4 +52,3 @@ to output of 'get pods'.
 
 Check that Spiderpool has correctly assigned IPs from the defined pools to the pods.
 
-    ping all ips from pods
