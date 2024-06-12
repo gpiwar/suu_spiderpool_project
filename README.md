@@ -1,36 +1,39 @@
 # suu_spiderpool_project
 
-Spiderpool - RDMA network solution for the Kubernetes [LINK](https://spidernet-io.github.io/spiderpool/v0.9/#license). Spiderpool is an underlay and RDMA network solution for the Kubernetes. It enhances the capabilities of Macvlan CNI, ipvlan CNI, SR-IOV CNI, fulfills various networking needs, and supports to run on bare metal, virtual machine, and public cloud environments. Spiderpool delivers exceptional network performance, particularly benefiting network I/O-intensive and low-latency applications like storage, middleware, and AI. It could refer to website for more details.
+Spiderpool - RDMA network solution for the Kubernetes [LINK](https://spidernet-io.github.io/spiderpool/v0.9/#license). 
+Spiderpool is an underlay and RDMA network solution for the Kubernetes. 
+It enhances the capabilities of Macvlan CNI, ipvlan CNI, SR-IOV CNI, fulfills various networking needs, 
+and supports to run on bare metal, virtual machine, and public cloud environments. 
+Spiderpool delivers exceptional network performance, particularly benefiting network I/O-intensive and 
+low-latency applications like storage, middleware, and AI. It could refer to website for more details.
 
-HARMONOGRAM:
+# Overview
 
-21 marca 
-- Omówienie tematyki
-- Ustalenie technologii realizacji
-- Podział zadań w zespole
+The Spiderpool project aims to manage IP addresses in a Kubernetes cluster using Spiderpool and Multus CNI plugin. 
+This project utilizes Terraform for infrastructure provisioning on AWS and Ansible for configuration management.
 
-4 kwietnia 🔴 **Punkt kontrolny 1** 🔴
-- Założenie repozytorium projektu na Github
-- Umieszczenie szkieletu dokumentacji
-- Podstawy teoretyczne (pkt. 1- 2 dok. )
-- Wstępna prezentacja koncepcji Demo (pkt. 3 dok.)
-  
-25 kwietnia - ⚪ **TERAZ** ⚪
-- Opis Demo – uzgodnienie (pkt. 3 dok. )
-- Ustalenie technologii realizacji Demo (pkt. 4 dok.)
-- Wstępny opis konfiguracji (pkt. 5 dok.)
+# Installation Method
+## Prerequisites:
 
-28 maja
-- Prezentacja postępów prac (pkt. 6-8 dok.)
-- Ustalenia szczegółowe
+  1.   AWS account with necessary permissions.
+  2.   Terraform installed (v0.12 or later).
+  3.   Ansible installed (v2.9 or later).
+  4.   SSH key pair for accessing EC2 instances.
 
-6 czerwca
-- Prezentacja postępów prac (pkt. 6-8 dok.)
-- Ustalenia szczegółowe
+## Steps:
+### Clone the Repository:
 
-13 czerwca 🔴 **Punkt kontrolny 2** 🔴
-- Prezentacja Demo (pkt. 9 dok.)
-- Prezentacja dokumentacji
-- Ocena wstępna realizacji projektu – ustalenie uzupełnień
+    git clone https://github.com/gpiwar/suu_spiderpool_project.git
+    cd suu_spiderpool_project
 
-20 czerwca 🟢 **Zaliczenie projektu** 🟢
+### Configure AWS Credentials:
+Ensure your AWS credentials are configured in your environment. Place them in ~/.aws/credentials.
+
+### Run the Deployment Script:
+
+    chmod +x run.sh
+    ./run.sh
+
+This script will execute the necessary Terraform and Ansible commands to set up the environment, 
+deploy Kubernetes, Spiderpool, and the applications.
+    
