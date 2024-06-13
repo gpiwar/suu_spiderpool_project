@@ -31,8 +31,8 @@ Ensure your AWS credentials are configured in your environment. Place them in ~/
 
 ### Run the Deployment Script:
 
-    chmod +x run.sh
-    ./run.sh
+    chmod +x provision_and_deploy.sh
+    ./provision_and_deploy.sh
 
 This script will execute the necessary Terraform and Ansible commands to set up the environment, 
 deploy Kubernetes, Spiderpool, and the applications.
