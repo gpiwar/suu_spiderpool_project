@@ -12,6 +12,8 @@ low-latency applications like storage, middleware, and AI. It could refer to web
 The Spiderpool project aims to manage IP addresses in a Kubernetes cluster using Spiderpool and Multus CNI plugin. 
 This project utilizes Terraform for infrastructure provisioning on AWS and Ansible for configuration management.
 
+![Spiderpool pods configuration](https://raw.githubusercontent.com/gpiwar/suu_spiderpool_project/main/imgs/spiderpool.svg)
+
 # Installation Method
 ## Prerequisites:
 
