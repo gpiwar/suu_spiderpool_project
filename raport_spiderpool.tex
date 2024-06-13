@@ -6,7 +6,7 @@
 \usepackage{graphicx}
 \usepackage{xcolor}
 \usepackage{listings}
-
+\usepackage{svg}
 
 
 \usepackage{hyperref}
@@ -28,6 +28,7 @@
 
 % Define Terraform language
 \lstdefinestyle{terraform}{
+  basicstyle=\footnotesize,
   keywords={resource, variable, provider, output, module, locals, terraform, backend},
   sensitive=true,
   comment=[l]{\#},
@@ -68,7 +69,7 @@ AGH Wydział Informatyki\\
 % ----------Spis treści------------
 \tableofcontents
 \thispagestyle{empty}
-\newpage
+% \newpage
 
 % ----------Raport------------
 \section{Wprowadzenie}
@@ -92,6 +93,13 @@ W ''czystym'' k8s kontenery wewnątrz poda współdzielą adres IP i przestrzeń
 Spiderpool jest stworzone z myślą o działaniu na dowolnym środowisku chmurowym. Ułatwia również zarządzanie takimi rozwiązaniami jak multicloud czy chmura hybrydowa.\\
 Jedną z najbardzej znanych i używanych platform chmurowych jest Amazon Web Services (AWS), która zapewnia szeroki wybór usług oraz zasobów obliczeniowych, sieciowych i przechowywania danych. Usługi Amazona są znacznie  rozbudowane i umożliwiają skonfigurowanie środowiska w taki sposób, aby było jak najbardziej dopasowane do danych potrzeb. Jedną z najważniejszych usług dostępnych w AWS jest Elastic Compute Cloud (EC2), która umożliwia elastyczne skalowanie zasobów obliczeniowych. Szerokie zastosowanie tej platformy oznacza również, że istnieje ogromna ilość informacji, dokumentacji i pomocy dostępnych dla użytkowników. Dlatego zdecydowano się wdrożyć projekt na tym środowisku.
 
+\subsection{Terraform}
+Terraform jest narzędziem do deklaratywnego konfigurowania i provisionowania infrastruktury cloud'owej z wykorzystaniem paradygmatu ,,infrastructure as a code''.
+Z wykorzystaniem deklaratywnego języka HCL (HashCorp Language) pozwala na opisanie stanu końcowego instrastruktury - a doprowadzeniem jej do tego stanu zajmuje się Terraform. 
+
+Terraform udostępnia dużą liczbę ,,provider'ów'', w tym provider dla AWS, umożliwiający konfigurowanie instancji EC2 i sieci VPC.
+
+
 \subsection{Ansible}
 Ansible jest silnikiem orkiestracji pozwalającym na tworzenie oprogramowania w paradygmacie ,,infrastructure as a code''.
 Umożliwia automatyzację provisioningu, konfiguracji i deploymentu systemów oraz oprogramowania za pomocą Playbook-ów - zestawów tasków, które mają się wykonać na wcześniej zdefiniowanych node'ach.
@@ -100,338 +108,249 @@ Ansible udostępnia moduły dedykowane do konfiguracji AWSa i Kubernetesa.
 Wartą uwagi cechą playbooków jest idempotentność operacji - taski sprawdzają, czy dane zadanie już nie zostało wykonane, a jeśli tak to go nie powtarzają - umożliwia to wielokrotne ich uruchamianie bez konieczności czyszczenia całego środowiska.
 
 \section{Case Study - opis projektu}
-Za pomocą wymienionych uprzednio technologii, dążymy do uzyskania automatycznego deploymentu środowiska Spiderpool na chmurze AWS za pomocą Ansible'a.
-W miejscach, gdzie użycie natywnych Ansible'owych modułów nie będzie możliwe, wykorzystane zostaną skrypty bash-owe lub (co jest bardziej preferowane) skrypt bash-owy wewnątrz playbooka.
-
-Po deploymencie Spiderpoola konieczne jest zautomatyzowanie sprawdzenia poprawności działania środowiska:
-\begin{enumerate}
-    \item test łączności sieciowej między kontenerami - za pomocą ping-ów lub curl-ów,
-    \item test działania funkcjonalności Spiderpoola - dodawanie i uwalnianie adresów IP,
-    \item uruchomienie kilku przykładowych aplikacji web-wych w kontenerach używających różnych adresów IP za pomocą Macvlan lub Ipvlan.
-\end{enumerate}
+Za pomocą wymienionych uprzednio technologii, dążymy do uzyskania automatycznego deploymentu środowiska Spiderpool na klastrze Kubernetesa na instancjach EC2 na chmurze AWS za pomocą Terraform'a i Ansible'a.
+Do zespolenia tych dwóch narzędzi zostanie użyty skrypt bash'owy.
 
 W ramach projektu zautomatyzowane zostaną więc:
 \begin{enumerate}
-    \item konfiguracja AWS - VPC i EC2,
-    \item deployment K8s,
-    \item deployment Spiderpoola,
-    \item testy, a w tym deployment przykładowych aplikacji.
+    \item provisioning instrastruktury na AWS - VPC i EC2 za pomocą Terraforma,
+    \item deployment K8s za pomocą Ansible,
+    \item deployment Spiderpoola za pomocą kubernetesowych manifestów i Ansible,
+    \item deployment przykładowej aplikacji za pomocą kubernetesowych manifestów i Ansible.
 \end{enumerate}
 
 \section{Architektura rozwiązania}
-Spiderpool składa się z następujących komponentów:
+Nasz deployment składa się z następujących komponentów:
 \begin{enumerate}
-    \item Kontroler Spiderpoola, odpowiedzialny za interakcje z API Server. 
-    Zarządza różnymi zasobami CRD; SpiderIPPool, SpiderSubnet, SpiderMultusConfig; poprzez ich walidację, tworzenie i update-owanie ich statusu. 
-    Dodatkowo odpowiada na żądania od Spiderpool-agent Pods, takie jak alokacja, zwolnienie czy zarządzanie pulą adresów IP. 
-    \item Spiderpool-agent, zestaw daemon-ów działających na każdym nodzie. 
-    Wspiera instalacje wtyczek takich jak Multus, Coordinator, IPAM, czy CNI. 
-    Odpowiada na żądania alokacji IP przez CNI, podczas tworzenia Pod-u. 
-    Komunikuje się z Spiderpool-controller w zakresie alokacji i tworzenia IP Pod-u. 
-    Komunikuje się także z Coordinator w zakresie synchronizacji konfiguracji i wspierania implementacji alokacji IP.
-    \item Wtyczek CNI
-    \newline Spiderpool IPAM plugin, główny CNI używany do zarządzania alokacją adresów IP.
-    \newline Coordinator plugin, odpowiada za koordynację routingu, połączenie pomiędzy hostami. 
-    Zapewnia unikalność adresów IP, odpowiednią adresacje MAC.
-    \newline Ifacer plugin, automatyzuje tworzenie wirtualnych interfejsów dla VLAN-ów i Bondów (łączenia wielu interfejsów sieciowych w jedno logiczne połączenie).
-    \newline Multus CNI, zarządza (scheduler) innymi wtyczkami CNI.
-    \item Komponentów SR-IOV
-    \item Komponentów RDMA
-    \newline RDMA CNI, implementuje izolację sieci
+    \item jedna sieć publiczna (dla mastera) i dwie sieci prywatne (dla workerów).
+
+    \item instancje EC2 skonfigurowane za pomocą terraforma:
+        \begin{itemize}
+            \item master z publicznym adresem IP,
+            \item 4 workery z dostępem do internetu przez NAT, każdy z dwoma interfejsami sieciowymi na dwóch różnych sieciach prywatnych (do każdego interfejsu przypisana pula adresów prywatnych).
+        \end{itemize}
+        Wszystkie instancje są typu \texttt{t2.large} i wykorzystują system RHEL9.4.
+
+    \item klaster kubernetesa (master i 4 workery) zdeployowany za pomocą Ansible (wykorzystujący pod spodem \texttt{kubeadm}).
+
+    \item spiderpool skonfigurowany za pomocą kubernetesowych manifestów i Ansible - dwie różne IP pool'e dla dwóch sieci prywatnych, korzystające z adresów przypisanych do interfesjów workerów.
+
+    \item pody z obrazem \texttt{busybox} umożliwiającym proste sprawdzenie działania sieci. 
 \end{enumerate}
 
+Na rys. \ref{fig:diagram} pokazano konfigurację klastra z dwoma workerami.
 
 \section{Konfiguracja środowiska}
 
-W celu realizacji założeń projektowych związanych z automatycznym deploymentem Spiderpoola 
-przeprowadzono konfigurację środowiska w AWS. Umożliwił to dostęp do platformy AWS Academy Learner
-Lab gdzie w ramach projektu otrzymaliśmy 100 dolarów w zasobach do wykorzystania na platformie. 
+Konieczne jest systemu Linux. Należy posiadać klucz \texttt{ssh} typu \texttt{ed25519}.
+Należy mieć dostęp do konsoli AWS (np. przez AWS Academy) z lokalnej maszyny - w~pliku \texttt{\~/.aws/credentials} należy umieścić dane konfiguracyjne z konsoli.
 
-Koniecznym krokiem było podłączenie konta w AWS do środowiska na maszynie lokalnej. Wystarczy skopiować
-plik \textit{credentials}, dostępny w  sekcji AWS Details w Learner Lab do folderu textit{~/.aws/
-credentials}.
-
-\begin{figure}
-    \centering
-    \includegraphics[width=0.8\linewidth]{alicloud-k8s-network_NOT_OURS.png}
-    \caption{Schemat przedstawiający uzyskaną konfigurację.}
-    \label{fig:enter-label}
-\end{figure}
+Konieczne jest zainstalowanie następujących pakietów na lokalnej maszynie:
+\begin{itemize}
+    \item \texttt{ansible},
+    \item \texttt{terraform},
+    \item \texttt{helm},
+    \item \texttt{kubectl}.
+\end{itemize}
+Dodatkowo po zainstalowaniu \texttt{ansible}, należy doinstalować moduły do kubernetesa:
+\begin{verbatim}
+    ansible-galaxy collection install kubernetes.core
+    pip install "Jinja2<3.1"
+    pip install kubernetes
+\end{verbatim}
 
 \section{Instalacja}
 
-Aby zainstalować nasz projekt, na początek należy spełnić kilka wymagań. Przede wszystkim 
-potrzebne jest konto AWS z odpowiednimi uprawnieniami. Konieczne jest również zainstalowanie
-Terraform w wersji 0.12 lub nowszej oraz Ansible w wersji 2.9 lub nowszej. Dodatkowo, wymagane
-jest posiadanie pary kluczy SSH umożliwiających dostęp do instancji EC2 na platformie AWS.
-
-Proces instalacji rozpoczyna się od klonowania repozytorium projektu z zdalnego repozytorium 
-oraz przejścia do katalogu z projektem. W tym celu należy użyć poleceń:
+Należy sklonować repozytorium i uruchomić skrypt \texttt{provision\_and\_deploy.sh}, który przeprowadzi proces provisioningu instancji, deployment kubernetesa, spiderpoola i przykładowej aplikacji.
 
 \begin{verbatim}
-git clone https://github.com/gpiwar/suu_spiderpool_project.git
-cd suu_spiderpool_project
+    git clone https://github.com/gpiwar/suu_spiderpool_project.git
+    cd suu_spiderpool_project
+    ./provision_and_deploy.sh
 \end{verbatim}
 
-Głównym krokiem instalacji jest uruchomienie skryptu \textit{run.sh}, który w pełni automatycznie przeprowadza proces konfiguracji infrastruktury oraz wdrażania aplikacji. Skrypt ten tworzy środowisko, wdrażając klaster Kubernetes oraz aplikacje takie jak Spiderpool i Multus CNI. Również wykonuje niezbędne komendy Terraform i Ansible. Ponadto przeprowadza on cały proces instalacji, w tym konfigurację sieci, instancji EC2 oraz wdrożenie aplikacji w klastrze Kubernetes.
+Skrypt ten uruchamia po kolei następujące komendy - w razie przerwania lub napotkania błędu można wznowić deployment wykorzystując następujące komendy:
+\begin{verbatim}
+    cd terraform
+    terraform init
+    terraform apply --auto-approve
+    cd -
 
-\section{Proces tworzenia aplikacji}
-Opisać kod - w zależności co ważne dodać fragmenty, narazie wstawiłam puste miejsca na kod
+    ansible-playbook -i ansible/inventory/hosts.cfg ansible/pre-deploy.yml
+    ansible-playbook -i ansible/inventory/hosts.cfg ansible/deploy-k8s.yml
+    ansible-playbook -i ansible/inventory/hosts.cfg ansible/deploy-spiderpool.yml
+    ansible-playbook -i ansible/inventory/hosts.cfg ansible/deploy-apps.yml
+\end{verbatim}
+
+\begin{figure}[!htpb]
+    \centering
+    \includesvg[width=\linewidth]{imgs/spiderpool.svg}
+    \caption{Schemat przedstawiający oczekiwaną konfigurację.}
+    \label{fig:diagram}
+\end{figure}
+
+\section{Opis provisioningu i deploymentu}
 
 \subsection{Terraform}
+Terraform provisionuje instancje EC2 i tworzy sieci (w tym tablice routingu, NAT i Internet Gateway'e, security groupy).
+Na rysunku \ref{fig:diagram} przedstawiono konfigurację sieci i instancji EC2.
 
-\subsubsection{Adresy sieci}
-\begin{lstlisting}[style=terraform]
-variable "net_cidr" {
-  type        = string
-  description = "Network CIDR"
-  default     = "172.31.0.0/16"
-}
+\subsubsection{Sieć}
+Tworzone są 3 sieci: 
+\begin{itemize}
+    \item jedna publiczna \texttt{172.31.0.0/20},
+    \item dwie prywatne \texttt{172.31.64.0/20} i \texttt{172.31.96.0/20}.
+\end{itemize}
 
-variable "public_subnet_cidr" {
-  type        = string
-  description = "Public Subnet CIDR"
-  default     = "172.31.0.0/20"
-}
+Tworzone są interfejsy sieciowe, dla każdego z workerów po dwa (eth0 i eth1, z dwóch sieci prywatnych).
+Każdy interfejs ma pulę adresów IP.
 
-variable "private_subnet_cidrs" {
-  type        = list(string)
-  description = "Private Subnet CIDRs"
-  default     = ["172.31.16.0/20", "172.31.64.0/20", "172.31.96.0/20"]
-}
+\subsubsection{Security groups}
+Master korzysta z security group'y z otwartym portem ingress dla ssh.
+Dla sieci prywatnych dla workerów jest stworzona osobna security group'a z otwartymi wszystkimi portami (ingress i egress) - jedynie w celu ułatwienia developmentu PoC.
 
-locals {
-  bastion = {
-    ami           = data.aws_ami.this.id
-    instance_type = "t2.micro"
-  }
-  interfaces = {
-    master_eth0 = {
-      subnet_id = aws_subnet.private[0].id
-      ip_list   = ["172.31.17.1"]
-    }
-    worker1_eth0 = {
-      subnet_id = aws_subnet.private[1].id
-      ip_list   = [for i in range(1, 5) : "172.31.65.${i}"]
-    }
-    worker1_eth1 = {
-      subnet_id = aws_subnet.private[2].id
-      ip_list   = [for i in range(1, 5) : "172.31.97.${i}"]
-    }
-    worker2_eth0 = {
-      subnet_id = aws_subnet.private[1].id
-      ip_list   = [for i in range(1, 5) : "172.31.66.${i}"]
-    }
-    worker2_eth1 = {
-      subnet_id = aws_subnet.private[2].id
-      ip_list   = [for i in range(1, 5) : "172.31.98.${i}"]
-    }
-    worker3_eth0 = {
-      subnet_id = aws_subnet.private[1].id
-      ip_list   = [for i in range(1, 5) : "172.31.67.${i}"]
-    }
-    worker3_eth1 = {
-      subnet_id = aws_subnet.private[2].id
-      ip_list   = [for i in range(1, 5) : "172.31.99.${i}"]
-    }
-    worker4_eth0 = {
-      subnet_id = aws_subnet.private[1].id
-      ip_list   = [for i in range(1, 5) : "172.31.68.${i}"]
-    }
-    worker4_eth1 = {
-      subnet_id = aws_subnet.private[2].id
-      ip_list   = [for i in range(1, 5) : "172.31.100.${i}"]
-    }
-  }
-}
-\end{lstlisting}
-Zmienne określają adresy dla sieci VPC, publicznych podsieci oraz grupę adresów dla sieci prywatnych. Następnie za pomocą wartości lokanych ustawiany jest adress bastionu oraz pule adresów IP dla interfejsów. Każdy z czterech workerów posiada dwa interfejsy eth0 i eth1.
+\subsubsection{Instancje}
+\paragraph{master} posiada publiczny adres IP i zarządza całym klastrem kubernetes.
+\paragraph{workery} posiadają dwa interfejsy sieciowe - eth0 i eth1 podłączone do dwóch różnych sieci prywatnych - każdy z interfejsów ma przypisaną pulę adresów IP (rys. \ref{fig:worker1-ips}).
 
-\subsubsection{Pobieranie informacji obrazie}
-\begin{lstlisting}[style=terraform]
-data "aws_ami" "this" {
-  most_recent = true
-  filter {
-    name   = "owner-alias"
-    values = ["amazon"]
-  }
+\begin{figure}[!htpb]
+    \centering
+    \includegraphics[width=0.6\linewidth]{imgs/aws-console-ifs.png}
+    \caption{Adresy IP przypisane do workera 1.}
+    \label{fig:worker1-ips}
+\end{figure}
 
-  filter {
-    name   = "name"
-    values = ["RHEL-9.4*"]
-  }
-}
-\end{lstlisting}
+\subsection{Playbooki Ansible}
+\subsubsection{pre-deploy.yml}
+Dokonujemy konfiguracji połączenia z master i workerami.
+Dodajemy klucz ssh, ustawiamy hostname'y, dodajemy adresy IP do /etc/hosts.
+W wyniku tego kroku uzyskujemy dostęp do jeszcze nie skonfigurowanego klastra - punktem wejścia jest master z publicznym IP. Do zalogowania się należy użyć użytkownika \texttt{ec2-user}.
 
+\subsubsection{deploy-k8s.yml}
+Przygotowujemy node'y pod kubernetesa (wyłączenie SELinux i swap'u, włączenie modułów kernela).
+Instalujemy CRI-O i kubelet, następnie uruchamiamy je.
 
-Pobranie danych o najnowszym obrazie AMI RHEL-9.4 od Amazona.
+Następnie na masterze pobieramy obrazy dla kubernetesa i inicjalizujemy mastera za pomocą \texttt{kubeadm} z endpointem na publicznym IP mastera - umożliwi to dostęp do klastra za pomocą komend kubectl z poziomu lokalnej maszyny użytkownika.
+Po inicjalizacji mastera, dodajemy workery do klastra.
 
-\subsubsection{Grupy bezpieczeństwa}
-Główna grupa bezpieczeństwa konfiguruje regułę egress, pozwalającą na cały ruch do wszystkich adresów IP. Reguła igress, pozwala natomiast jedynie na komunikacje przez SSH.
+W wyniku tego kroku otrzymujemy działajacy klaster kubernetesa, co można sprawdzić wykonując komendy:
+\begin{verbatim}
+    $ export KUBECONFIG="./kubeconfig"
+    $ kubectl get nodes
+    NAME      STATUS   ROLES           AGE   VERSION
+    master    Ready    control-plane   3m    v1.30.2
+    worker1   Ready    <none>          1m    v1.30.2
+    worker2   Ready    <none>          1m    v1.30.2
+    worker3   Ready    <none>          1m    v1.30.2
+    worker4   Ready    <none>          1m    v1.30.2
+\end{verbatim}
 
-W przypadku grupy wewnątrz klastra dopuszczony jest ruch dla wszystkich protokołów na wszystkich portach i adresach IP.
+\subsubsection{deploy-spiderpool.yml}
+Za pomocą helm-a instalujemy spiderpool-a.
+Dodajemy dwie konfiguracje ipvlan dla spiderpool-multusa - dla interfejsów eth0 i eth1.
+Następnie dodajemy pule adresów IP.
+Powyższe jest równoznaczne ręcznemu zaplikowaniu manifestów:
+\begin{verbatim}
+    kubectl apply -f manifests/SpiderMultusConfig.yaml
+    kubectl apply -f manifests/SpiderIPPool.yaml
+\end{verbatim}
 
+W wyniku tego kroku uzyskujemy działającego spiderpoola z pulami adresów IP:
+\begin{verbatim}
+    $ kubectl get spidermultusconfigs.spiderpool.spidernet.io -n kube-system
+    NAME          AGE
+    ipvlan-eth0   22m
+    ipvlan-eth1   22m
+    $ kubectl get spiderippools
+    NAME          VERSION   SUBNET           ALLOCATED-IP-COUNT   TOTAL-IP-COUNT
+    172-31-64-0   4         172.31.64.0/20   0                    16
+    172-31-96-0   4         172.31.96.0/20   0                    16
+\end{verbatim}
 
+\subsubsection{deploy-apps.yml}
+Deployujemy prostą aplikację z obrazem busybox, pozwalającą na sprawdzenie przydziału adresów IP do interfejsów podów.
+\begin{verbatim}
+    kubectl apply -f manifests/Deployment-busybox.yaml
+\end{verbatim}
+W wyniku tego uzyskujemy 4 pody, każdy z nich ma dwa interfejsy sieciowe: eth0 i net1.
+\begin{verbatim}
+    $ kubectl get pods -owide
+    NAME                       READY   STATUS    AGE   IP            NODE
+    busybox-5dc5cb4bf6-6kv5d   1/1     Running   24m   172.31.65.3   worker1
+    busybox-5dc5cb4bf6-9hxxb   1/1     Running   24m   172.31.66.2   worker2
+    busybox-5dc5cb4bf6-9jsts   1/1     Running   24m   172.31.68.1   worker4
+    busybox-5dc5cb4bf6-9ml79   1/1     Running   24m   172.31.67.4   worker3
+    $ kubectl exec -it busybox-5dc5cb4bf6-6kv5d -- ip -4 addr show scope global
+    2: eth0@eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 9001 qdisc noqueue 
+        inet 172.31.65.3/20 brd 172.31.79.255 scope global eth0
+           valid_lft forever preferred_lft forever
+    4: net1@veth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 9001 qdisc noqueue 
+        inet 172.31.97.3/20 brd 172.31.111.255 scope global net1
+           valid_lft forever preferred_lft forever
+\end{verbatim}
 
-\subsubsection{cluster.tf}
-Ten plik zawiera konfiguracje klastra. Wykorzystuje zmienne zdefiniowane w pliku variables.tf aby utworzyć zasoby określające m.in. łączenie się z klastrem, gateway NAT, podsieci, interfejsy sieciowe.
+\subsection{Dodatkowa konfiguracja}
 
-\subsection{Manifests}
-
-\textbf{SpiderMultusConfig.yaml}
-\begin{lstlisting}[style=yaml]
----
-apiVersion: spiderpool.spidernet.io/v2beta1
-kind: SpiderMultusConfig
-metadata:
-  name: ipvlan-eth0
-  namespace: kube-system
-spec:
-  cniType: ipvlan
-  ipvlan:
-    master:
-    - eth0
----
-apiVersion: spiderpool.spidernet.io/v2beta1
-kind: SpiderMultusConfig
-metadata:
-  name: ipvlan-eth1
-  namespace: kube-system
-spec:
-  cniType: ipvlan
-  ipvlan:
-    master:
-    - eth1
-\end{lstlisting}
-
-\textbf{SpiderIPPool.yaml}
-\begin{lstlisting}[style=yaml]
-\end{lstlisting}
-
-
-\textbf{Deployment-nginx.yaml}
-\begin{lstlisting}[style=yaml]
-\end{lstlisting}
-
-
-\textbf{Deployment-busybox.yaml}
-\begin{lstlisting}[style=yaml]
-\end{lstlisting}
-
-
-\subsection{Ansible - playbooks}
-%Za pomocą Ansible dokonujemy deployu \newline
-\textbf{pre-deploy.yml} \newline
-Dokonujemy konfiguracji połączenia z bastionem i klustrem. Dodajemy klucz ssh, ustawiamy hostname, dodajemy cluster IPs do /etc/hosts. Następnie instalujemy następujące aplikacje vim, tmux, git, bash-completion, python3-pip.
-\begin{lstlisting}[style=yaml]
-\end{lstlisting}
-
-
-\textbf{deploy-k8s.yml} \newline
-Dokonujemy instalacji kubernetesa, CRI-O, container-selinux, cri-o, kubelet, kubeadm, kubectl.
-\begin{lstlisting}[style=yaml]
-\end{lstlisting}
-
-\textbf{deploy-spiderpool.yml} \newline
-Dokonujemy instalacji helm-a. Za pomocą helm-a instalacji spiderpool-a. Następnie dodajemy pulę adresów IP do spiderpool-a. Playbook realizuje komendy
-\begin{lstlisting}
-helm repo add spiderpool https://spidernet-io.github.io/spiderpool
-
-helm repo update spiderpool
-
-helm install spiderpool spiderpool/spiderpool --namespace kube-system \
---set ipam.enableStatefulSet=false \
---set multus.multusCNI.defaultCniCRName="ipvlan-eth0"
-
-\end{lstlisting}
-
-
-
-\textbf{deploy-apps.yml} \newline
-Dokonujemy deploymentu busybox, nginx.
-\begin{lstlisting}[style=yaml]
-    - name: Get Spiderpool IP pools
-      ansible.builtin.command: kubectl get spiderippools.spiderpool.spidernet.io
-      register: kubectl_get_spiderippools
-      changed_when: false
-
-    - name: Get busybox pod names
-      ansible.builtin.command: kubectl get pods -oNAME --selector=run=busybox
-      register: busybox_pod_names
-      changed_when: false
-
-    - name: Get IPs from inside of busybox pods
-      ansible.builtin.command: "kubectl exec -it {{ item }} -- ip -4 addr show scope global"
-      loop: "{{ busybox_pod_names.stdout_lines }}"
-      register: busybox_pods_ips
-      changed_when: false
-\end{lstlisting}
-
-
-\section{Demo aplikacji}
-Aby przetestować w pełni poprawne działanie proponowanego rozwiązania konieczne jest uruchomienie
-demo naszej aplikacji wykorzystującej Spiderpool. Poniżej przedstawiono odpowiednie kroki.
-
-\subsection{Konfiguracja}
-
-Aby przeporwadzić demo naszej aplikacji wykorzystującej Spiderpool, należy skonfigurować AWS, 
-zamieszczając plik credentials.txt w odpowiednim katalogu. Jest to niezbędne to prawidłowego działania
-przedstawionego rozwiązania. 
-
-\subsection{Przygotowanie danych}
-
-W trakcie testowania możliwa jest edycja pliku \textit{'variables.tf'}, w celu dodania nowego workera do klastra. Jeżeli zdecydujemy się na ten krok należy dodać również nowe interfejsy sieciowe w sekcji \textit{interfaces}, gdzie przypiszemy odpowiednie adresy IP do interfejsów 'etho0' i etho1'. Kolejnym 
-i ostatnim krokiem jest aktualizacja pliku \textit{'SpiderIPPool.yaml'}, gdzie dodamy nowe adresy IP.
-Poniżej przedstawiono przykładowe definicje workera i jego interfejsów:
-
-\begin{lstlisting}[style=yaml]
-
-    worker4 = {
+Nasz deployment charakteryzuje się dosyć dużą swobodą w konfiguracji kubernetesa i spiderpoola.
+Użytkownik może:
+\begin{itemize}
+    \item dodać lub usunąć workery do klastra - plik \texttt{terraform/variables.tf}, sekcja \texttt{locals/workers}. Przykładowy 5. worker:
+    \begin{verbatim}
+    worker5 = {
       ami           = data.aws_ami.this.id
       instance_type = "t2.large"
       interfaces = [
-        aws_network_interface.this["worker4_eth0"].id,
-        aws_network_interface.this["worker4_eth1"].id
+        aws_network_interface.this["worker5_eth0"].id,
+        aws_network_interface.this["worker5_eth1"].id
       ]
     }
---------------------------------
+    \end{verbatim}
 
-    worker4_eth0 = {
+    \item dodać interfejsy do workerów i przypisać im adresy z sieci prywatnych - \texttt{terraform/variables.tf}, sekcja \texttt{locals/interfaces}. Przykładowy interfejs dla worker5:
+    \begin{verbatim}
+    worker5_eth1 = {
       subnet_id = aws_subnet.private[1].id
-      ip_list   = [for i in range(1, 5) : "172.31.68.${i}"]
+      ip_list   = [for i in range(1, 5) : "172.31.101.${i}"]
     }
-    worker4_eth1 = {
-      subnet_id = aws_subnet.private[2].id
-      ip_list   = [for i in range(1, 5) : "172.31.100.${i}"]
+    \end{verbatim}
+
+    \item zmodyfikować sieci prywatne - \texttt{terraform/variables.tf}, sekcja \texttt{private\_subnet\_cidrs}.
+    \begin{verbatim}
+    variable "private_subnet_cidrs" {
+      type        = list(string)
+      description = "Private Subnet CIDRs"
+      default     = ["172.31.64.0/20", "172.31.96.0/20"]
     }
-\end{lstlisting}
+    \end{verbatim}
 
-\subsection{Uruchomienie skryptu}
+    \item dodać pule adresów przypisanych do workera do spiderpoola - \texttt{manifests/SpiderIPPool.yaml}:
+    \begin{verbatim}
+    kind: SpiderIPPool
+    metadata:
+      name: 172-31-96-0
+    spec:
+      subnet: 172.31.96.0/20
+      ips:
+        ...
+        - 172.31.101.1-172.31.101.4
+      gateway: 172.31.96.1
+      default: true
+      multusName: ["kube-system/ipvlan-eth1"]
+    \end{verbatim}
+\end{itemize}
 
-Tak jak opisano w sekcji z instalacją, do wdrożenia aplikacji konieczne jest pobranie plików z 
-repozytorium projektowego na platformie GitHub. Po przejściu do pobranego folderu należy 
-uruchomić skrypt \textit{run.sh}, który automatycznie zainstaluje i skonfiguruje konieczne pliki.
 
-\subsection{Sprawdzenie działania}
-Po zakończeniu procesu wdrażania, należy zweryfikować wyniki. W konsoli zarządzania AWS można
-sprawdzić, czy zostały utworzone odpowiednie zasoby, takie jak VPC, podsieci, instancje EC2 oraz
-inne elementy infrastruktury. Następnie, za pomocą narzędzia kubectl, można ręcznie sprawdzić stan
-klastra Kubernetes, w tym węzłów i podów, używając poleceń przedstawionych poniżej.
 
-\begin{verbatim}
-kubectl get nodes
-kubectl get pods
-kubectl exec -it {{ item }} -- ip -4 addr show scope global
-\end{verbatim}
-
-Gdzie w miejsce 'item' wpisujemy konkretne pody otrzymane po wywołaniu poprzenich poleceń.
-Na końcu sprawdzamy czy Spiderpool poprawnie przypisał adresy IP z zdefiniowanych pul do podów. 
 
 \section{Podsumowanie}
+Nasz projekt automatyzuje provisioning infrastruktury AWS i deployment klastra kubernetes z pluginem spiderpool.
+Wykorzystuje do tego paradygmat ,,infrastructure as a code'':
+Z wykorzystaniem Terraforma provisionuje instancje AWS EC2, tworzy i konfiguruje sieci na AWS VPC.
+Następnie za pomocą Ansible'a deployuje klaster kubernetesa na stworzonych wcześniej instancjach EC2.
+Na tak skonfigurowanym klastrze deployowany jest spiderpool z dwoma pulami adresów IP.
+Na sam koniec uruchamiana jest przykładowa aplikacja z czterema podami, z których każdy ma dwa interfejsy sieciowe z adresami IP z różnych sieci prywatnych.
 
-Podsumowując, skrypt stworzony na potrzeby projektu dostarcza skutecznych narzędzi do zarządzania siecią kontenerową w środowiskach Kubernetes. Realizowany projekt jest automatycznym rozwiązaniem
-dla możliwości narzędzia Spiderpool. Dzięki integracji z technologiami, takimi jak AWS, Ansible, oraz Terraform, rozwiązanie zapewnia elastyczność, skalowalność i efektywność. W ramach projektu przetestowano funkcjonalność Spiderpoola, sprawdzając poprawność alokacji adresów IP oraz 
-działanie aplikacji webowych wdrożonych w kontenerach z różnymi konfiguracjami sieciowymi.
+W ramach testów wielokrotnie sprawdzono poprawność alokacji adresów IP w utworzonych podach.
 
 %\bibliography{}
 
